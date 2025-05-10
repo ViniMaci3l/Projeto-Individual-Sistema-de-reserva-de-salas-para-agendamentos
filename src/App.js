@@ -2,15 +2,15 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
-import Login           from './pages/Login';
-import CriarConta      from './pages/CriarConta';
-import ConfirmarEmail  from './pages/ConfirmarEmail';
-import ForgotPassword  from './pages/ForgotPassword';
-import ResetPassword   from './pages/ResetPassword';
-import EscolherSala    from './pages/EscolherSala';
-import Calendario      from './pages/Calendario';
-import EscolherHorario from './pages/EscolherHorario';
-import Confirmacao     from './pages/Confirmacao';
+import Login           from './views/Login';
+import CriarConta      from './views/CriarConta';
+import ConfirmarEmail  from './views/ConfirmarEmail';
+import ForgotPassword  from './views/ForgotPassword';
+import ResetPassword   from './views/ResetPassword';
+import EscolherSala    from './views/EscolherSala';
+import Calendario      from './views/Calendario';
+import EscolherHorario from './views/EscolherHorario';
+import Confirmacao     from './views/Confirmacao';
 
 export default function App() {
   return (
