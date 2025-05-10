@@ -1,6 +1,5 @@
-// src/App.js
-import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
+import Router from './router';
 
 import Login           from './views/Login';
 import CriarConta      from './views/CriarConta';

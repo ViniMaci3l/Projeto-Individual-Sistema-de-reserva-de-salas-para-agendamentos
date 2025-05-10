@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import {
+  processResetSession,
+  resetPasswordAndUpdateUser
+} from '../controllers/authController';
 
 export default function ResetPassword() {
-  const [senha, setSenha]         = useState('');
-  const [confirmar, setConfirmar] = useState('');
-  const [msg, setMsg]             = useState('Processando link...');
-  const [sessionReady, setSession] = useState(false);
+  const [senha, setSenha]           = useState('');
+  const [confirmar, setConfirmar]   = useState('');
+  const [msg, setMsg]               = useState('Processando link...');
+  const [sessionReady, setSession]  = useState(false);
   const navigate = useNavigate();
   const { hash } = useLocation();
 
@@ -22,16 +25,16 @@ export default function ResetPassword() {
       setMsg('Link inválido ou expirado.');
       return;
     }
-    supabase.auth
-      .setSession({ access_token, refresh_token })
-      .then(({ data, error }) => {
-        if (error || !data.session) {
-          console.error('Erro ao criar sessão:', error);
-          setMsg('Não foi possível processar o link.');
-        } else {
-          setMsg('Insira sua nova senha:');
-          setSession(true);
-        }
+
+    // agora delegamos ao controller
+    processResetSession(access_token, refresh_token)
+      .then(() => {
+        setMsg('Insira sua nova senha:');
+        setSession(true);
+      })
+      .catch(error => {
+        console.error('Erro ao criar sessão:', error);
+        setMsg('Não foi possível processar o link.');
       });
   }, [hash]);
 
@@ -41,30 +44,15 @@ export default function ResetPassword() {
       return;
     }
 
-    const { error: authError } = await supabase.auth.updateUser({ password: senha });
-    if (authError) {
-      console.error('Erro ao redefinir senha:', authError);
-      setMsg('Falha ao redefinir senha.');
-      return;
-    }
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      console.error('Não foi possível obter usuário:', userError);
-    } else {
+    try {
       
-      const { error: customError } = await supabase
-        .from('usuarios')
-        .update({ senha })
-        .eq('email', user.email);           
-      if (customError) {
-        console.error('Erro ao atualizar tabela usuarios:', customError);
-      }
+      await resetPasswordAndUpdateUser(senha);
+      setMsg('Senha alterada com sucesso! Redirecionando...');
+      setTimeout(() => navigate('/'), 2000);
+    } catch (error) {
+      console.error('Falha ao redefinir senha:', error);
+      setMsg('Falha ao redefinir senha.');
     }
-
-
-    setMsg('Senha alterada com sucesso! Redirecionando...');
-    setTimeout(() => navigate('/'), 2000);
   };
 
   return (

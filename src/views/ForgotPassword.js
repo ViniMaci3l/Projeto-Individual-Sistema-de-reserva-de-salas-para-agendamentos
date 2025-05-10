@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { forgotPassword } from '../controllers/authController';
 
 export default function ForgotPassword() {
   const [email, setEmail]    = useState('');
@@ -11,7 +11,7 @@ export default function ForgotPassword() {
     setDisabled(true);
     setTimer(60);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await forgotPassword(email, {
       redirectTo: window.location.origin + '/redefinir-senha'
     });
 
