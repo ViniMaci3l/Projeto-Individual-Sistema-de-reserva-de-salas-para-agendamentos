@@ -1,70 +1,168 @@
-# Getting Started with Create React App
+# Sistema de Reserva de Salas
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Um projeto individual de faculdade para gerenciar agendamentos de salas, construído em React + Supabase.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 🚀 Visão Geral
 
-### `npm start`
+* **Frontend**: React (Create React App) com React Router
+* **Backend & Auth**: Supabase (PostgreSQL + Auth)
+* **Banco de Dados**: 3 tabelas principais
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+  * `usuarios` (UUID, nome, email, senha)
+  * `salas`    (id serial, nome R01–R10)
+  * `reservas` (id serial, usuário UUID, sala id, data, horário, status)
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+O sistema permite:
 
-### `npm test`
+1. Cadastro, confirmação de e-mail e login (com fluxo de “Esqueci minha senha”).
+2. Listagem de salas, mostrando quem reservou e quando.
+3. Agendamento de hora em hora (08:00–19:00), bloqueando conflitos.
+4. Reset de senha por e-mail com token de recuperação.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## 🧰 Tech Stack
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+* **React** + React Router
+* **Supabase** (Auth, PostgreSQL, RLS, Policies)
+* **EmailJS** (envio de e-mail de confirmação)
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+---
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 📂 Estrutura do Projeto
 
-### `npm run eject`
+reserva-salas/
+├── src/
+│   ├── pages/
+│   │   ├── CriarConta.js
+│   │   ├── Login.js
+│   │   ├── ForgotPassword.js
+│   │   ├── ResetPassword.js
+│   │   ├── ConfirmarEmail.js
+│   │   ├── EscolherSala.js
+│   │   ├── Calendario.js
+│   │   └── Confirmacao.js
+│   └── supabaseClient.js
+├── .env.example
+├── .gitignore
+├── package.json
+└── README.md
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+---
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## 🔧 Pré-requisitos
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+* Node.js ≥ 16
+* Conta Supabase criada
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+---
 
-## Learn More
+## ⚙️ Configuração
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. **Clone o repositório**
+   git clone [https://github.com/SEU\_USUARIO/projeto-reserva-salas.git](https://github.com/SEU_USUARIO/projeto-reserva-salas.git)
+   cd projeto-reserva-salas/reserva-salas
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+2. **Copie o exemplo de ambiente**
+   cp .env.example .env.local
+   Preencha em `.env.local`:
+   REACT\_APP\_SUPABASE\_URL=SEU\_SUPABASE\_URL
+   REACT\_APP\_SUPABASE\_ANON\_KEY=SUA\_SUPABASE\_ANON\_KEY
 
-### Code Splitting
+3. **Instale dependências**
+   npm install
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+4. **Configure o banco no Supabase**
+   No painel Supabase → SQL Editor, execute:
 
-### Analyzing the Bundle Size
+   \-- Usuários com UUID e ON DELETE CASCADE
+   DROP TABLE IF EXISTS public.usuarios CASCADE;
+   CREATE TABLE public.usuarios (
+   id    uuid PRIMARY KEY
+   REFERENCES auth.users(id)
+   ON DELETE CASCADE,
+   nome  varchar(100) NOT NULL,
+   email varchar(100) UNIQUE NOT NULL,
+   senha text NOT NULL
+   );
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+   \-- Salas R01–R10
+   DROP TABLE IF EXISTS public.salas CASCADE;
+   CREATE TABLE public.salas (
+   id   serial PRIMARY KEY,
+   nome text   NOT NULL UNIQUE
+   );
+   INSERT INTO public.salas (nome)
+   SELECT 'R' || LPAD(i::text,2,'0')
+   FROM generate\_series(1,10) AS s(i);
 
-### Making a Progressive Web App
+   \-- Reservas
+   DROP TABLE IF EXISTS public.reservas;
+   CREATE TABLE public.reservas (
+   id             serial PRIMARY KEY,
+   usuario\_id     uuid NOT NULL
+   REFERENCES public.usuarios(id)
+   ON DELETE CASCADE,
+   sala\_id        int  NOT NULL
+   REFERENCES public.salas(id),
+   data           date NOT NULL,
+   horario\_inicio time NOT NULL,
+   horario\_fim    time NOT NULL,
+   status         text NOT NULL DEFAULT 'active',
+   UNIQUE (sala\_id, data, horario\_inicio)
+   );
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+5. **Desative o RLS** em `salas` e `reservas`
+   Table Editor → Manage → Disable RLS.
 
-### Advanced Configuration
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## 🚀 Executando o Projeto
 
-### Deployment
+npm start
+Abra [http://localhost:3000](http://localhost:3000) no navegador.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+---
 
-### `npm run build` fails to minify
+## 📋 Fluxos Principais
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+* `/` – Login
+* `/criar-conta` – Cadastro + e-mail de confirmação
+* `/esqueci-senha` – Enviar link de recuperação
+* `/redefinir-senha` – Nova senha via token
+* `/escolher-sala` – Listagem de salas + histórico de reservas
+* `/calendario` – Seleção de data
+* `/escolher-horario` – Escolha de hora livre
+* `/confirmacao` – Grava reserva no Supabase
+
+---
+
+## ✔️ Funcionalidades
+
+* Cadastro e login com Supabase Auth
+* Tabelas com relacionamentos e ON DELETE CASCADE
+* Reset de senha com token via hash na URL
+* Listagem aninhada: salas → reservas → nome do usuário
+* Bloqueio de conflitos de horário (constraint UNIQUE)
+
+---
+
+## 🤝 Como contribuir
+
+1. Fork deste repositório
+2. Crie uma branch
+   git checkout -b feature/nome
+3. Commit suas mudanças
+   git commit -m "feat: descrição da mudança"
+4. Push para sua branch
+   git push origin feature/nome
+5. Abra um Pull Request
+
+---
+
+## 📜 Licença
+
+MIT © Vinícius Alves Maciel
+
